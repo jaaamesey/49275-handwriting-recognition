@@ -4,4 +4,6 @@ With basic preprocessing (just resized to 128x128):
   VGG11: better, but still bad on testing data (flatlined at 16 starting from epoch 4)
 
 With more advanced preprocessing:
-  Resized to 64x64 
+  Cropped to content and resized to 64x64
+  Much better, but unstable?
+    Stability increased by changing learning rate from 0.001 to 0.0001

@@ -64,7 +64,7 @@ def run_network():
   model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11').to(device)
 
   criterion = nn.CrossEntropyLoss()
-  optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+  optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
   transform = transforms.ToTensor()
 
@@ -77,7 +77,7 @@ def run_network():
   cycle_errors = list[float]()
   test_accuracy = list[float]()
 
-  for epoch in range(50):
+  for epoch in range(100):
     model.train(True)
     running_loss = 0
 
