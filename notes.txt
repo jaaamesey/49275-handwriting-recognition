@@ -1,0 +1,7 @@
+With basic preprocessing (just resized to 128x128): 
+  VGG16: poor performance
+
+  VGG11: better, but still bad on testing data (flatlined at 16 starting from epoch 4)
+
+With more advanced preprocessing:
+  Resized to 64x64 
