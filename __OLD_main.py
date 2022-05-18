@@ -9,15 +9,12 @@ from skimage import io, img_as_ubyte
 from skimage.transform import resize
 import time
 import os
-from resnet import ResNet18
 
 TRAINING_DATA_PROCESSED_DIR = './_training_data_processed'
 TESTING_DATA_PROCESSED_DIR = './_testing_data_processed'
 
 RAW_TRAINING_DATA_DIR = './training_data'
 RAW_TESTING_DATA_DIR = './testing_data'
-
-IMAGE_INPUT_SIZE = 128
 
 # Applies preprocessing to all images and saves them to disk.
 def preprocess_images():
@@ -37,7 +34,7 @@ def preprocess_images():
     # Resize to speed up cropping
     img = resize(img, (128, 128), anti_aliasing=False)
     img = crop_image_to_content(img)
-    img = resize(img, (64, 64), anti_aliasing=False)
+    img = resize(img, (32, 32), anti_aliasing=False)
     return img_as_ubyte(img)
 
   start_time = time.perf_counter()
@@ -61,42 +58,30 @@ def preprocess_images():
   print(f'Preprocessed datasets in {time.perf_counter() - start_time}s.')
 
 def run_network():
-  torch.manual_seed(1)
-  lr = 0.0001
+  torch.manual_seed(0)
   device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 
-  #model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg13_bn',pretrained=False).to(device)
-  model = ResNet18(input_size=IMAGE_INPUT_SIZE, num_classes=10).to(device)
+  model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11').to(device)
 
   criterion = nn.CrossEntropyLoss()
-  optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+  optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
-  # For updating learning rate
-  def update_lr(optimizer, lr):    
-      for param_group in optimizer.param_groups:
-          param_group['lr'] = lr
-    
-  transform = transforms.Compose([transforms.Resize((IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE)), transforms.ToTensor()])
+  transform = transforms.Compose([transforms.Grayscale(3), transforms.Resize((32,32)), transforms.ToTensor()])
 
   training_dataset = torchvision.datasets.ImageFolder(TRAINING_DATA_PROCESSED_DIR, transform=transform)
   #training_dataset = torchvision.datasets.MNIST('/files/', train=True, download=True, transform=transform)
-  training_loader = dl.DataLoader(training_dataset, shuffle=True, num_workers=0, batch_size=20, pin_memory=True)
+  training_loader = dl.DataLoader(training_dataset, shuffle=True, num_workers=0, batch_size=1024, pin_memory=True)
 
   testing_dataset = torchvision.datasets.ImageFolder(TESTING_DATA_PROCESSED_DIR, transform=transform)
   #testing_dataset = torchvision.datasets.MNIST('/files/', train=False, download=True, transform=transform)
-  testing_loader = dl.DataLoader(testing_dataset, shuffle=True, num_workers=0, batch_size=20, pin_memory=True)
-
+  testing_loader = dl.DataLoader(testing_dataset, shuffle=True, num_workers=0, batch_size=1, pin_memory=True)
+  
   cycle_errors = list[float]()
   test_accuracy = list[float]()
 
-  last_acc= 0 
-  num_epochs = 10
-  for epoch in range(num_epochs):
+  for epoch in range(15):
     model.train(True)
     running_loss = 0
-    if (epoch+1)%70 ==0:
-      lr = lr/10
-      update_lr(optimizer, lr)
 
     for (inputs, labels) in training_loader:
       optimizer.zero_grad(set_to_none=True)
@@ -114,23 +99,14 @@ def run_network():
     with torch.no_grad():
       model.train(False)
       correct = 0
-      total = 0
       for (inputs, labels) in testing_loader:
         inputs, labels = inputs.to(device), labels.to(device)
         outputs = model(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        correct += (predicted == labels).sum().item()
-        total += labels.size(0)
-        #correct += (torch.argmax(outputs, dim=1) == labels).float().sum().item()
-      new_acc = correct / total
-      if new_acc > last_acc:
-        test_accuracy.append(new_acc)
-        last_acc = new_acc
-        print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, new_acc))
-        torch.save(model.state_dict(), './model')
-      else:
-        test_accuracy.append(last_acc)
-        print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, last_acc))     
+        correct += (torch.argmax(outputs, dim=1) == labels).float().sum().item()
+      test_accuracy.append(correct / len(testing_loader))
+      print(f'{correct} / {len(testing_loader)} ({correct / len(testing_loader)})')
+      
+    print(f'{epoch}: {running_loss}')
 
   plt.plot(range(1, len(cycle_errors) + 1), cycle_errors)
   plt.xlabel("Epoch")
@@ -142,8 +118,11 @@ def run_network():
   plt.ylabel("Test accuracy")
   plt.show()
 
+  torch.save(model.state_dict(), './model')
+
 if __name__ == '__main__':
-  # Apply preprocessing. 
+  # Applies preprocessing. 
   # Takes a minute, so only run this if the logic for preprocessing is changed.
   #preprocess_images()
+  # Builds and tests the neural network
   run_network()
