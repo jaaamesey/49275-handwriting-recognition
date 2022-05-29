@@ -61,7 +61,7 @@ def preprocess_images():
   print(f'Preprocessed datasets in {time.perf_counter() - start_time}s.')
 
 def run_network():
-  torch.manual_seed(1)
+  torch.manual_seed(0)
   lr = 0.0001
   device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 
