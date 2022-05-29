@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.utils.data.dataloader as dl
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.transforms import InterpolationMode
+import torch.jit as tj
 import matplotlib.pyplot as plt
 from skimage import io, img_as_ubyte
 from skimage.transform import resize
@@ -76,7 +78,7 @@ def run_network():
       for param_group in optimizer.param_groups:
           param_group['lr'] = lr
     
-  transform = transforms.Compose([transforms.Resize((IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE)), transforms.ToTensor()])
+  transform = transforms.Compose([transforms.Resize((IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE), interpolation=InterpolationMode.BILINEAR), transforms.ToTensor()])
 
   training_dataset = torchvision.datasets.ImageFolder(TRAINING_DATA_PROCESSED_DIR, transform=transform)
   #training_dataset = torchvision.datasets.MNIST('/files/', train=True, download=True, transform=transform)
@@ -120,10 +122,11 @@ def run_network():
         _, predicted = torch.max(outputs.data, 1)
         correct += (predicted == labels).sum().item()
         total += labels.size(0)
-        #correct += (torch.argmax(outputs, dim=1) == labels).float().sum().item()
       acc = correct / total
       test_accuracy.append(acc)
       print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, acc))
+
+  tj.save(tj.script(model), "./model.pt")
 
   plt.plot(range(1, len(cycle_errors) + 1), cycle_errors)
   plt.xlabel("Epoch")
