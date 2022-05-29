@@ -4,10 +4,10 @@ import torch.nn.functional as F
 
 class ResidualBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
-        super(ResidualBlock, self).__init__()#super继承
+        super(ResidualBlock, self).__init__()
         self.left = nn.Sequential(
             nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
-            nn.BatchNorm2d(outchannel),#归一化
+            nn.BatchNorm2d(outchannel),
             nn.ReLU(inplace=True),
             nn.Conv2d(outchannel, outchannel, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(outchannel)
@@ -21,7 +21,7 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
         out = self.left(x)
-        out += self.shortcut(x)#跳远连接
+        out += self.shortcut(x)
         out = F.relu(out)
         return out
 
@@ -38,10 +38,10 @@ class ResNet(nn.Module):
         self.layer2 = self.make_layer(ResidualBlock, 128, 4, stride=2)
         self.layer3 = self.make_layer(ResidualBlock, 256, 6, stride=2)
         self.layer4 = self.make_layer(ResidualBlock, 512, 3, stride=2)
-        self.fc = nn.Linear((input_size ** 2) // 2, num_classes)        #softmax替换
+        self.fc = nn.Linear((input_size ** 2) // 2, num_classes)
 
     def make_layer(self, block, channels, num_blocks, stride):
-        strides = [stride] + [1] * (num_blocks - 1)   #strides=[1,1]
+        strides = [stride] + [1] * (num_blocks - 1)   
         layers = []
         for stride in strides:
             layers.append(block(self.inchannel, channels, stride))
