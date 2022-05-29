@@ -89,8 +89,7 @@ def run_network():
   cycle_errors = list[float]()
   test_accuracy = list[float]()
 
-  last_acc= 0 
-  num_epochs = 10
+  num_epochs = 20
   for epoch in range(num_epochs):
     model.train(True)
     running_loss = 0
@@ -122,15 +121,9 @@ def run_network():
         correct += (predicted == labels).sum().item()
         total += labels.size(0)
         #correct += (torch.argmax(outputs, dim=1) == labels).float().sum().item()
-      new_acc = correct / total
-      if new_acc > last_acc:
-        test_accuracy.append(new_acc)
-        last_acc = new_acc
-        print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, new_acc))
-        torch.save(model.state_dict(), './model')
-      else:
-        test_accuracy.append(last_acc)
-        print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, last_acc))     
+      acc = correct / total
+      test_accuracy.append(acc)
+      print("Epoch: [{}/{}], Training loss: {:.4f}, Accuracy: {}".format(epoch+1,num_epochs,running_loss, acc))
 
   plt.plot(range(1, len(cycle_errors) + 1), cycle_errors)
   plt.xlabel("Epoch")
